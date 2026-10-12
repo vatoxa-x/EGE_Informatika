@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-panel">
+  <div class="panel-header">
+    <h1>Добавить задание</h1>
+    <p>Сначала выберите задание и вид. Затем соберите содержание кнопкой «+».</p>
+  </div>
+  {% if message %}<div class="notice">{{ message }}</div>{% endif %}
+
+  <form class="new-task-form" action="{{ url_for('add') }}" method="post" enctype="multipart/form-data" id="new-task-form">
+    <div class="form-group"><label for="task-number">Номер задания ЕГЭ</label><select id="task-number" name="task_number" required><option value="">Выберите задание</option>{% for item in task_catalog %}<option value="{{ item.id }}" {% if selected_task|string == item.id|string %}selected{% endif %}>{{ item.id }} — {{ item.title }}</option>{% endfor %}</select></div>
+    <div class="form-group"><label for="variant-slug">Вид задания</label><select id="variant-slug" name="variant_slug" required></select></div>
+    <div class="form-group"><label for="sequence-number">Номер записи в выбранном виде</label><input id="sequence-number" type="number" name="sequence_number" min="1" value="{{ selected_sequence_number }}" required><small class="text-muted">Например, 2.1 и номер 3 дадут запись 2.1.3.</small></div>
+    <div class="form-group"><label for="difficulty">Сложность</label><select id="difficulty" name="difficulty"><option value="normal" {% if selected_difficulty == 'normal' %}selected{% endif %}>Средняя</option><option value="easy" {% if selected_difficulty == 'easy' %}selected{% endif %}>Простая</option><option value="hard" {% if selected_difficulty == 'hard' %}selected{% endif %}>Сложная</option></select></div>
+
+    <div class="content-builder">
+      <div class="block-heading"><strong>Содержание задания</strong><button type="button" class="button auth-submit small-button" id="add-block">+ Добавить блок</button></div>
+      <div id="blocks-list"></div>
+      <p id="empty-blocks" class="text-muted">Добавьте первый блок: текст, таблицу, изображение или файл.</p>
+    </div>
+
+    <input type="hidden" name="text" id="plain-text">
+    <input type="hidden" name="content_data" id="content-data" value="{}">
+    <input type="hidden" name="answer" id="answer-value" value="">
+    <div id="answer-table-editor" class="content-block" hidden><div class="block-heading"><strong>Таблица правильных ответов</strong><span id="answer-table-hint" class="text-muted"></span></div><div id="answer-table-list"></div></div>
+    <div id="text-answer-field" class="form-group"><label for="answer-text">Правильный ответ</label><input id="answer-text" type="text" placeholder="Ответ пользователя"></div>
+    <button type="submit" class="button auth-submit">Сохранить задание</button>
+  </form>
+
+  <div class="card task-list-small"><h2>Последние задания</h2><ul class="task-list-items">{% for task in tasks[:20] %}<li class="task-item"><strong>{{ task.task_id }}</strong><span class="task-desc">{{ task.text[:70] }}{% if task.text|length > 70 %}...{% endif %}</span><form method="post" action="{{ url_for('delete_task', task_id=task.id) }}" onsubmit="return confirm('Удалить задание {{ task.task_id }}?');"><input type="hidden" name="task_number" value="{{ selected_task }}"><input type="hidden" name="variant_slug" value="{{ selected_variant }}"><input type="hidden" name="sequence_number" value="{{ selected_sequence_number }}"><input type="hidden" name="difficulty" value="{{ selected_difficulty }}"><button type="submit" class="button danger-button small-button">Удалить</button></form></li>{% else %}<li class="empty-state">Заданий пока нет.</li>{% endfor %}</ul></div>
+</section>
+
+<script>
+const catalog = {{ task_catalog|tojson }};
+const selectedVariant = {{ selected_variant|tojson }};
+const taskNumber = document.getElementById('task-number');
+const variantSelect = document.getElementById('variant-slug');
+const blocksList = document.getElementById('blocks-list');
+const emptyBlocks = document.getElementById('empty-blocks');
+const contentData = document.getElementById('content-data');
+const plainText = document.getElementById('plain-text');
+const addBlockButton = document.getElementById('add-block');
+const answerTableTasks = [17, 18, 20, 25, 26, 27];
+const blockTypes = { text: 'Текст', table: 'Таблица', image: 'Изображение', file: 'Файл' };
+
+function refreshVariants(restoreSelected = false) {
+  const item = catalog.find(entry => String(entry.id) === taskNumber.value);
+  variantSelect.innerHTML = '';
+  if (!item) return;
+  item.variants.forEach(variant => {
+    const option = document.createElement('option'); option.value = variant.slug; option.textContent = `${variant.slug} — ${variant.title}`; variantSelect.appendChild(option);
+  });
+  if (restoreSelected && item.variants.some(variant => variant.slug === selectedVariant)) variantSelect.value = selectedVariant;
+  refreshAnswerMode();
+}
+function refreshAnswerMode() {
+  const isTable = answerTableTasks.includes(Number(taskNumber.value));
+  document.getElementById('answer-table-editor').hidden = !isTable;
+  document.getElementById('text-answer-field').hidden = isTable;
+  document.getElementById('answer-text').required = !isTable;
+  if (isTable) buildAnswerTable(Number(taskNumber.value) === 25 ? 10 : 2);
+}
+function updateEmptyState() { emptyBlocks.hidden = blocksList.children.length > 0; }
+function makeButton(text, className) { const button = document.createElement('button'); button.type = 'button'; button.className = className || 'button secondary small-button'; button.textContent = text; return button; }
+function addBlock(type) {
+  const block = document.createElement('div'); block.className = `builder-block builder-${type}`; block.dataset.type = type;
+  const heading = document.createElement('div'); heading.className = 'block-heading'; heading.innerHTML = `<strong>${blockTypes[type]}</strong>`;
+  const remove = makeButton('Удалить'); remove.classList.add('remove-block'); heading.appendChild(remove); block.appendChild(heading);
+  if (type === 'text') block.appendChild(createTextEditor());
+  if (type === 'table') block.appendChild(createTableEditor());
+  if (type === 'image') { const input = document.createElement('input'); input.type = 'file'; input.name = 'images'; input.accept = 'image/*'; input.multiple = true; block.appendChild(input); }
+  if (type === 'file') { const input = document.createElement('input'); input.type = 'file'; input.name = 'attachments'; input.accept = '.doc,.docx,.xls,.xlsx,.csv,.txt,.pdf,.ods,.zip'; input.multiple = true; block.appendChild(input); }
+  blocksList.appendChild(block); updateEmptyState();
+}
+function createTextEditor() {
+  const wrapper = document.createElement('div'); wrapper.className = 'rich-editor';
+  wrapper.innerHTML = '<div class="rich-toolbar"><button type="button" data-command="bold"><strong>B</strong></button><button type="button" data-command="italic"><em>I</em></button><button type="button" data-command="superscript">x²</button><button type="button" data-command="subscript">x₂</button><button type="button" data-symbol="→">→</button><button type="button" data-symbol="⇒">⇒</button><button type="button" data-symbol="⇔">⇔</button><button type="button" data-symbol="≡">≡</button><button type="button" data-symbol="∧">∧</button><button type="button" data-symbol="∨">∨</button><button type="button" data-symbol="¬">¬</button><button type="button" data-symbol="≤">≤</button><button type="button" data-symbol="≥">≥</button><button type="button" data-symbol="≠">≠</button></div><div class="rich-editor-area" contenteditable="true" data-placeholder="Вставьте текст задания"></div>';
+  wrapper.querySelectorAll('[data-command]').forEach(button => button.addEventListener('click', () => { document.execCommand(button.dataset.command); wrapper.querySelector('.rich-editor-area').focus(); }));
+  wrapper.querySelectorAll('[data-symbol]').forEach(button => button.addEventListener('click', () => { const editor = wrapper.querySelector('.rich-editor-area'); editor.focus(); document.execCommand('insertText', false, button.dataset.symbol); }));
+  wrapper.querySelector('.rich-editor-area').addEventListener('paste', event => { event.preventDefault(); const text = (event.clipboardData || window.clipboardData).getData('text/plain').replace(/\r\n?/g, '\n'); document.execCommand('insertText', false, text); });
+  return wrapper;
+}
+function createTableEditor() {
+  const wrapper = document.createElement('div'); wrapper.className = 'table-builder';
+  wrapper.innerHTML = '<input class="table-title" placeholder="Название таблицы"><div class="table-scroll"><table><thead><tr><th class="row-number-cell"></th><th><input value="1"></th><th><input value="2"></th><th class="table-action-cell"><button type="button" class="small-button add-column" title="Добавить столбец">+</button></th></tr></thead><tbody><tr><th class="row-number-cell">1</th><td><input></td><td><input></td><td class="table-action-cell"><button type="button" class="small-button remove-row" title="Удалить строку">×</button></td></tr></tbody></table></div><button type="button" class="button secondary small-button add-row">Добавить строку</button>';
+  return wrapper;
+}
+function serialize() {
+  const blocks = [...blocksList.children].map(block => {
+    const type = block.dataset.type;
+    if (type === 'text') return {type, html: block.querySelector('.rich-editor-area').innerHTML, text: block.querySelector('.rich-editor-area').innerText};
+    if (type === 'table') return {type, title: block.querySelector('.table-title').value, headers: [...block.querySelectorAll('thead input')].map(input => input.value), rows: [...block.querySelectorAll('tbody tr')].map(row => [...row.querySelectorAll('input')].map(input => input.value))};
+    return {type};
+  });
+  const textBlocks = blocks.filter(block => block.type === 'text').map(block => block.text.trim()).filter(Boolean);
+  plainText.value = textBlocks.join('\n'); contentData.value = JSON.stringify({blocks, text_html: blocks.filter(block => block.type === 'text').map(block => block.html).join('<br>')});
+  const isTable = answerTableTasks.includes(Number(taskNumber.value));
+  document.getElementById('answer-value').value = isTable ? JSON.stringify({answer_table: [...document.querySelectorAll('[data-answer-cell]')].map(input => input.value.trim())}) : document.getElementById('answer-text').value;
+}
+function buildAnswerTable(rowCount) { const list = document.getElementById('answer-table-list'); list.innerHTML = ''; const table = document.createElement('table'); table.className = 'answer-table-builder'; table.innerHTML = '<thead><tr><th>Столбец 1</th><th>Столбец 2</th></tr></thead><tbody></tbody>'; for (let row = 1; row <= rowCount; row += 1) { const tr = document.createElement('tr'); tr.innerHTML = `<th>${row}</th><td><input data-answer-cell></td><td><input data-answer-cell></td>`; table.querySelector('tbody').appendChild(tr); } list.appendChild(table); document.getElementById('answer-table-hint').textContent = rowCount === 10 ? '2 столбца, 10 строк' : '2 столбца'; }
+
+taskNumber.addEventListener('change', refreshVariants);
+addBlockButton.addEventListener('click', () => { const menu = document.createElement('div'); menu.className = 'block-menu'; Object.keys(blockTypes).forEach(type => { const button = makeButton(blockTypes[type]); button.dataset.type = type; menu.appendChild(button); }); menu.addEventListener('click', event => { if (event.target.dataset.type) { addBlock(event.target.dataset.type); menu.remove(); } }); addBlockButton.parentElement.appendChild(menu); });
+blocksList.addEventListener('click', event => {
+  if (event.target.classList.contains('remove-block')) {
+    event.target.closest('.builder-block').remove(); updateEmptyState(); return;
+  }
+  const table = event.target.closest('.table-builder');
+  if (!table) return;
+  if (event.target.classList.contains('add-row')) {
+    const body = table.querySelector('tbody');
+    const columnCount = table.querySelectorAll('thead th:not(.row-number-cell):not(.table-action-cell)').length;
+    const row = document.createElement('tr');
+    row.innerHTML = `<th class="row-number-cell">${body.rows.length + 1}</th>${'<td><input></td>'.repeat(columnCount)}<td class="table-action-cell"><button type="button" class="small-button remove-row" title="Удалить строку">×</button></td>`;
+    body.appendChild(row);
+  } else if (event.target.classList.contains('remove-row')) {
+    const row = event.target.closest('tr');
+    if (table.querySelectorAll('tbody tr').length > 1) row.remove();
+    [...table.querySelectorAll('tbody .row-number-cell')].forEach((cell, index) => { cell.textContent = index + 1; });
+  } else if (event.target.classList.contains('add-column')) {
+    const headerAction = event.target.closest('th');
+    const columnNumber = table.querySelectorAll('thead th:not(.row-number-cell):not(.table-action-cell)').length + 1;
+    const header = document.createElement('th'); header.innerHTML = `<input value="${columnNumber}">`;
+    headerAction.before(header);
+    table.querySelectorAll('tbody tr').forEach(row => row.querySelector('.table-action-cell').insertAdjacentHTML('beforebegin', '<td><input></td>'));
+  }
+});
+document.getElementById('new-task-form').addEventListener('submit', serialize);
+{% if selected_task %}refreshVariants(true);{% endif %}
+</script>
+{% endblock %}

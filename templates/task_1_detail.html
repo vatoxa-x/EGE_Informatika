@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-panel">
+  <div class="panel-header">
+    <h1>{{ variant.title }}</h1>
+    <p>Задание 1</p>
+  </div>
+
+  <div class="card">
+    <h2>{{ task_meta.title }} — {{ variant.title }}</h2>
+    <div class="meta">Номер из базы: {{ task_record.task_id if task_record else 'не найдено' }}</div>
+
+    {% if task_record %}
+      {% if task_content.get('blocks') %}
+      {% set image_index = namespace(value=0) %}
+      <div class="task-1-content">
+      {% for block in task_content.get('blocks', []) %}
+        {% if block.type == 'text' %}
+        <div class="task-1-block task-1-text task-text rich-text">{{ block.html|safe }}</div>
+        {% elif block.type == 'table' %}
+        <div class="task-1-block task-1-table task-table-wrap">
+          {% if block.title %}<h3>{{ block.title }}</h3>{% endif %}
+          {% if block.headers|length == 8 and block.rows|length == 8 %}
+          <table class="task-table graph-matrix-table">
+            <thead>
+              <tr><th class="matrix-title" colspan="9">Номер пункта</th></tr>
+              <tr><th></th>{% for header in block.headers %}<th>{{ header }}</th>{% endfor %}</tr>
+            </thead>
+            <tbody>
+              {% for row in block.rows %}
+              {% set row_index = loop.index %}
+              <tr><th>{{ row_index }}</th>{% for cell in row %}<td class="{% if loop.index == row_index %}matrix-diagonal{% endif %}">{{ cell }}</td>{% endfor %}</tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <table class="task-table"><thead><tr>{% for header in block.headers %}<th>{{ header }}</th>{% endfor %}</tr></thead><tbody>{% for row in block.rows %}<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>
+          {% endif %}
+        </div>
+        {% elif block.type == 'image' and image_index.value < task_record.images|length %}
+        <div class="task-1-block task-1-image task-image-grid"><img src="{{ task_record.images[image_index.value].image_url }}" alt="Изображение для задания {{ task_record.task_id }}"></div>
+        {% set image_index.value = image_index.value + 1 %}
+        {% endif %}
+      {% endfor %}
+      </div>
+      {% else %}
+      {% set text_parts = task_record.text.split('[[IMAGE_0]]', 1) %}
+      <p>{{ text_parts[0] }}</p>
+      {% if task_record.images %}
+      <div class="task-image-grid">
+        <img src="{{ task_record.images[0].image_url }}" alt="Изображение для задания {{ task_record.task_id }}">
+      </div>
+      {% endif %}
+      {% if text_parts|length > 1 %}
+      <p>{{ text_parts[1] }}</p>
+      {% endif %}
+      {% endif %}
+
+      <div class="answer-panel" data-correct-answer="{{ task_record.answer }}">
+        <label for="user-answer">Введите ответ</label>
+        <div class="answer-row">
+          <input id="user-answer" class="answer-input" type="text" placeholder="Ваш ответ" autocomplete="off">
+          <button id="check-answer" class="button auth-submit" type="button">Проверить</button>
+        </div>
+        <div id="answer-result" class="answer-result"></div>
+      </div>
+    {% else %}
+      <p class="text-muted">Заданий этой вариации пока нет. Добавьте его через вкладку «Добавить».</p>
+    {% endif %}
+  </div>
+</section>
+
+<script>
+  const answerPanel = document.querySelector('.answer-panel');
+  if (answerPanel) {
+    const correctAnswer = answerPanel.dataset.correctAnswer.trim().toLowerCase();
+    const input = document.getElementById('user-answer');
+    const button = document.getElementById('check-answer');
+    const result = document.getElementById('answer-result');
+    button.addEventListener('click', () => {
+      const isCorrect = input.value.trim().toLowerCase() === correctAnswer;
+      result.textContent = isCorrect ? 'Верно!' : 'Неверно.';
+      result.className = `answer-result ${isCorrect ? 'answer-correct' : 'answer-wrong'}`;
+      if (isCorrect) {
+        input.disabled = true;
+        button.disabled = true;
+      }
+    });
+  }
+</script>
+{% endblock %}

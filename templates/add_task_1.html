@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-panel">
+  <div class="panel-header">
+    <h1>Добавить задание 1</h1>
+    <p>Картинка будет показана между началом и продолжением текста задания.</p>
+  </div>
+
+  {% if message %}
+  <div class="notice">{{ message }}</div>
+  {% endif %}
+
+  <form class="task-form" action="{{ url_for('add_task_1') }}" method="post" enctype="multipart/form-data">
+    <label class="form-field">
+      <span>Номер задачи</span>
+      <input type="text" name="number" value="1.1.1" required>
+    </label>
+
+    <label class="form-field">
+      <span>Начало задания</span>
+      <textarea name="text_before" rows="6" required placeholder="Текст до картинки"></textarea>
+    </label>
+
+    <label class="form-field">
+      <span>Картинка</span>
+      <input type="file" name="image" accept="image/*" required>
+    </label>
+
+    <label class="form-field">
+      <span>Продолжение задания</span>
+      <textarea name="text_after" rows="6" required placeholder="Текст после картинки"></textarea>
+    </label>
+
+    <label class="form-field">
+      <span>Правильный ответ</span>
+      <input type="text" name="answer" required>
+    </label>
+
+    <label class="form-field">
+      <span>Сложность</span>
+      <select name="difficulty" required>
+        <option value="">Выберите сложность</option>
+        <option value="easy">Простое</option>
+        <option value="normal">Среднее</option>
+        <option value="hard">Сложное</option>
+      </select>
+    </label>
+
+    <button type="submit" class="button auth-submit">Создать задание</button>
+  </form>
+
+  <div class="card task-list-small">
+    <h2>Задания 1 в базе ({{ tasks|length }})</h2>
+    <ul class="task-list-items">
+      {% for task in tasks %}
+      <li class="task-item">
+        <strong>{{ task.task_id }}</strong>
+        <span class="task-desc">{{ task.text[:50] }}{% if task.text|length > 50 %}...{% endif %}</span>
+      </li>
+      {% else %}
+      <li class="empty-state">Заданий пока нет.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endblock %}

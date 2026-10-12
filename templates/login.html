@@ -1,0 +1,133 @@
+﻿{% extends "base.html" %}
+{% block header %}{% endblock %}
+{% block content %}
+<style>
+.auth-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(360px, 420px);
+  gap: 28px;
+  align-items: center;
+}
+.auth-copy {
+  padding: 28px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 28px;
+}
+.auth-copy .eyebrow {
+  color: #8c96b2;
+  text-transform: uppercase;
+  letter-spacing: .18em;
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+.auth-copy h1 {
+  margin: 0 0 18px;
+  font-size: clamp(2rem, 2.8vw, 3rem);
+  line-height: 1.02;
+}
+.auth-copy p {
+  color: var(--muted);
+  line-height: 1.85;
+}
+.auth-card {
+  padding: 34px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  box-shadow: 0 30px 70px rgba(0,0,0,.18);
+}
+.auth-card h2 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+.auth-form {
+  display: grid;
+  gap: 18px;
+  margin-top: 24px;
+}
+.auth-field {
+  display: grid;
+  gap: 8px;
+}
+.auth-field label {
+  color: #cfd7ee;
+  font-size: 14px;
+}
+.auth-field input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  color: #fff;
+  font-size: 15px;
+}
+.auth-field input::placeholder {
+  color: rgba(255,255,255,.55);
+}
+.auth-field input:focus {
+  outline: none;
+  border-color: rgba(95,140,255,.5);
+  box-shadow: 0 0 0 4px rgba(95,140,255,.1);
+}
+.auth-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.auth-submit {
+  width: auto;
+  min-width: 160px;
+}
+.auth-extra {
+  margin-top: 20px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 14px;
+}
+.auth-extra a {
+  color: #8da9ff;
+  text-decoration: none;
+}
+.auth-extra a:hover {
+  text-decoration: underline;
+}
+@media (max-width: 900px) {
+  .auth-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+<section class="page-panel">
+  <div class="auth-grid">
+    <div class="auth-copy">
+      <div class="eyebrow">ЕГЭ Информатика 2026</div>
+      <h1>Вход в личный кабинет</h1>
+      <p>Нажмите вход, чтобы продолжить подготовку: тренировки, задания и прогресс хранятся в одном месте.</p>
+    </div>
+    <div class="auth-card">
+      <h2>Войти</h2>
+      <form class="auth-form" action="/login" method="post">
+        <div class="auth-field">
+          <label for="login-email">Электронная почта</label>
+          <input id="login-email" name="email" type="email" placeholder="name@example.com" required>
+        </div>
+        <div class="auth-field">
+          <label for="login-password">Пароль</label>
+          <input id="login-password" name="password" type="password" placeholder="••••••••" required>
+        </div>
+        <div class="auth-actions">
+          <a class="variant-link" href="/reset-password">Забыли пароль?</a>
+          <button type="submit" class="button auth-submit">Войти</button>
+        </div>
+      </form>
+      <div class="auth-extra">
+        Нет аккаунта? <a href="/register">Зарегистрируйтесь</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

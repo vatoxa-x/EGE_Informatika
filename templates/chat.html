@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-panel">
+  <div class="panel-header">
+    <h1>Чат</h1>
+    <p>Обсуждайте задания с группой, спрашивайте помощь и делитесь результатами.</p>
+  </div>
+  <div class="chat-window">
+    <article class="message">
+      <strong>Дима</strong>
+      <p>У меня вышло задание 15?</p>
+      <div class="meta">12:40</div>
+    </article>
+    <article class="message user">
+      <strong>Аля</strong>
+      <p>Так лучше через Excel!</p>
+      <div class="meta">13:30</div>
+    </article>
+    <article class="message">
+      <strong>Артём П.</strong>
+      <p>Помогите с 17-м, пожалуйста.</p>
+      <div class="meta">13:25</div>
+    </article>
+  </div>
+</section>
+{% endblock %}

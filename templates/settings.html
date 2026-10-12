@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-panel">
+  <div class="panel-header">
+    <h1>Настройки</h1>
+    <p>Настройте интерфейс, уведомления и поведение приложения под свои предпочтения.</p>
+  </div>
+  <div class="settings-list">
+    <div class="setting-item">
+      <div>
+        <h3>Тёмная тема</h3>
+        <p>Выберите тёмный стиль для комфортной работы вечером.</p>
+      </div>
+      <div class="toggle">Включено</div>
+    </div>
+    <div class="setting-item">
+      <div>
+        <h3>Уведомления</h3>
+        <p>Получать напоминания о новых заданиях и сроках.</p>
+      </div>
+      <div class="toggle">Включено</div>
+    </div>
+    <div class="setting-item">
+      <div>
+        <h3>Язык интерфейса</h3>
+        <p>Русский</p>
+      </div>
+      <div class="toggle">Русский</div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <input id="Task_id" name="id"  placeholder="номер" required>
+    <input id="Text" name="text"  placeholder="ТЕКСТ" required>
+    <input id="Ansver" name="ansver"  placeholder="ответ" required>
+    <input id="Complexity" name="Complexity" placeholder="сложность" required>
+    <button type="submit" class="button auth-submit">Создать</button>
+</body>
+</html>

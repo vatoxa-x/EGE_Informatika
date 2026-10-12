@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ЕГЭ Информатика 2027 — {{ page_title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="app-shell">
+    {% block header %}
+    <header class="top-bar">
+      <div class="brand">
+        <div class="brand-logo">ЕГЭ</div>
+        <div>
+          <div class="brand-title">Информатика</div>
+          <div class="brand-subtitle">2027</div>
+        </div>
+      </div>
+      <nav class="top-nav">
+        <a class="nav-link {% if active_page == 'home' %}active{% endif %}" href="{{ url_for('home') }}">Главная</a>
+        <a class="nav-link {% if active_page == 'tasks' %}active{% endif %}" href="{{ url_for('tasks') }}">Задания</a>
+        <a class="nav-link {% if active_page == 'details' %}active{% endif %}" href="{{ url_for('details') }}">Подробности задач</a>
+        <a class="nav-link {% if active_page == 'settings' %}active{% endif %}" href="{{ url_for('settings') }}">Настройки</a>
+        <a class="nav-link {% if active_page == 'chat' %}active{% endif %}" href="{{ url_for('chat') }}">Чат</a>
+        {% if user and user.email == '123@123' %}
+        <a class="nav-link {% if active_page == 'add' %}active{% endif %}" href="{{ url_for('add') }}">Добавить</a>
+        {% endif %}
+        {% if user %}
+          <a class="nav-link {% if active_page == 'profile' %}active{% endif %}" href="{{ url_for('profile', username=user.username) }}">Профиль</a>
+        {% else %}
+          <a class="nav-link {% if active_page == 'login' %}active{% endif %}" href="{{ url_for('login') }}">Войти</a>
+        {% endif %}
+      </nav>
+    </header>
+    {% endblock %}
+    <main class="page-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>

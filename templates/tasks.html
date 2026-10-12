@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-panel">
+  <div class="panel-header">
+    <h1>Задания</h1>
+    <p>Список заданий ЕГЭ. Нажмите на задачу, чтобы развернуть варианты, затем выберите нужный подвид.</p>
+  </div>
+  <div class="task-list">
+    {% for task_meta in tasks %}
+    <details class="task-item">
+      <summary class="task-toggle">
+        <div>
+          <div class="task-title">Задание {{ task_meta.id }} — {{ task_meta.title }}</div>
+          <div class="meta">Категория: {{ task_meta.category }}</div>
+        </div>
+        <div class="task-badge">Варианты</div>
+      </summary>
+      <div class="task-variants">
+        {% for variant in task_meta.variants %}
+        <a class="variant-link" href="{{ url_for('task_variant', variant_slug=variant.slug) }}">
+          {{ variant.title }}
+        </a>
+        {% endfor %}
+      </div>
+    </details>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

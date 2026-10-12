@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-panel">
+  <div class="panel-header">
+    <h1>Профиль пользователя</h1>
+    <p>Отслеживание вашего прогресса в решении задач</p>
+  </div>
+
+  <div class="profile-container">
+    <!-- Информация пользователя -->
+    <div class="profile-header">
+      <div class="profile-avatar">{{ user.username[0]|upper }}</div>
+      <div class="profile-info">
+        <h2>{{ user.username }}</h2>
+        <p class="profile-email">{{ user.email }}</p>
+        <div class="profile-stats">
+          <div class="stat-item">
+            <span class="stat-label">Выполнено заданий</span>
+            <span class="stat-value">{{ user.user_task_complite if user.user_task_complite else 0 }}</span>
+          </div>
+          <div class="stat-item"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Сетка заданий -->
+    <div class="tasks-section">
+      <h3 class="section-title">Мои задания</h3>
+      <div class="task-grid">
+        {% for task in tasks %}
+        <div class="task-square" title="{{ task.title }}">
+          <span class="task-number">{{ task.id }}</span>
+          <div class="task-tooltip">{{ task.title }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock content %}

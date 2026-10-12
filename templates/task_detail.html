@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-panel">
+  <div class="panel-header">
+    <h1>{{ variant.title if variant else task_record.task_id }}</h1>
+    <p>
+      {% if variant %}
+      Выбран вариант: {{ variant.title }}.
+      {% else %}
+      Показано задание из базы данных.
+      {% endif %}
+    </p>
+  </div>
+  <div class="card">
+    <h2>
+      {% if task_meta %}{{ task_meta.title }} — {{ variant.title }}{% else %}Задача {{ task_record.task_id }}{% endif %}
+    </h2>
+    <div class="meta">
+      Номер из базы: {{ task_record.task_id if task_record else 'не найдено' }}
+      {% if task_meta %}• Раздел: {{ task_meta.category }}{% endif %}
+    </div>
+    {% if task_record %}
+      {% if task_content.get('blocks') %}
+      {% set image_index = namespace(value=0) %}
+      {% set file_index = namespace(value=0) %}
+      {% for block in task_content.get('blocks', []) %}
+        {% if block.type == 'text' %}
+        <div class="task-text rich-text">{{ block.html|safe }}</div>
+        {% elif block.type == 'table' %}
+        <div class="task-table-wrap">
+          {% if block.title %}<h3>{{ block.title }}</h3>{% endif %}
+          <table class="task-table"><thead><tr>{% for header in block.headers %}<th>{{ header }}</th>{% endfor %}</tr></thead><tbody>{% for row in block.rows %}<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>
+        </div>
+        {% elif block.type == 'image' and image_index.value < task_record.images|length %}
+        <div class="task-image-grid"><img src="{{ task_record.images[image_index.value].image_url }}" alt="Изображение для задания {{ task_record.task_id }}"></div>
+        {% set image_index.value = image_index.value + 1 %}
+        {% elif block.type == 'file' and file_index.value < task_record.attachments|length %}
+        <div class="task-attachments"><a class="button secondary" href="{{ task_record.attachments[file_index.value].file_url }}" download>{{ task_record.attachments[file_index.value].original_name }}</a></div>
+        {% set file_index.value = file_index.value + 1 %}
+        {% endif %}
+      {% endfor %}
+      {% elif task_content.get('text_html') %}
+      <div class="task-text rich-text">{{ task_content.get('text_html')|safe }}</div>
+      {% else %}
+      <p class="task-text">{{ task_record.text }}</p>
+      {% endif %}
+
+      {% if not task_content.get('blocks') and task_record.images %}
+      <div class="task-image-grid">
+        {% for image in task_record.images %}
+        <img src="{{ image.image_url }}" alt="Изображение для задания {{ task_record.task_id }}">
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if not task_content.get('blocks') %}
+      {% for table in task_content.get('tables', []) %}
+      <div class="task-table-wrap">
+        {% if table.title %}<h3>{{ table.title }}</h3>{% endif %}
+        <table class="task-table">
+          <thead><tr>{% for header in table.headers %}<th>{{ header }}</th>{% endfor %}</tr></thead>
+          <tbody>{% for row in table.rows %}<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+        </table>
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      {% if not task_content.get('blocks') and task_record.attachments %}
+      <div class="task-attachments">
+        <h3>Файлы задания</h3>
+        {% for attachment in task_record.attachments %}<a class="button secondary" href="{{ attachment.file_url }}" download>{{ attachment.original_name }}</a>{% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="answer-panel" data-correct-answer="{{ task_record.answer }}" data-correct-table="{{ answer_table|tojson|forceescape }}">
+        <label>{% if answer_table %}Заполните таблицу ответа{% else %}Введите ответ{% endif %}</label>
+        {% if answer_table %}
+        <table class="answer-table-input"><tbody><tr><th>1</th><th>2</th></tr>{% for row in range((answer_table|length // 2)) %}<tr><td><input data-user-answer></td><td><input data-user-answer></td></tr>{% endfor %}</tbody></table>
+        {% else %}
+        <div class="answer-row"><input id="user-answer" class="answer-input" type="text" placeholder="Ваш ответ" autocomplete="off"></div>
+        {% endif %}
+        <button id="check-answer" class="button auth-submit" type="button">Проверить</button>
+        <div id="answer-result" class="answer-result"></div>
+      </div>
+
+      {% if task_meta %}
+      <div class="task-actions">
+        <a class="button secondary" href="{{ url_for('task_variant', variant_slug=variant.slug) }}">Ещё одно задание</a>
+      </div>
+      {% endif %}
+    {% else %}
+      <p class="text-muted">Не найдено заданий в базе для этой вариации. Попробуйте добавить задания через вкладку «Добавить».</p>
+    {% endif %}
+  </div>
+</section>
+
+<script>
+  const answerPanel = document.querySelector('.answer-panel');
+  if (answerPanel) {
+    const correctAnswer = answerPanel.dataset.correctAnswer ? answerPanel.dataset.correctAnswer.trim().toLowerCase() : '';
+    const correctTable = JSON.parse(answerPanel.dataset.correctTable || '[]');
+    const inputs = [...answerPanel.querySelectorAll('[data-user-answer]')];
+    const input = document.getElementById('user-answer');
+    const button = document.getElementById('check-answer');
+    const result = document.getElementById('answer-result');
+
+    const lockAnswer = (isCorrect) => {
+      if (input) input.disabled = true;
+      inputs.forEach(item => item.disabled = true);
+      button.disabled = true;
+      if (input) input.classList.add('answer-input-disabled');
+      result.classList.add(isCorrect ? 'answer-correct' : 'answer-wrong');
+    };
+
+    button.addEventListener('click', () => {
+      const values = inputs.length ? inputs.map(item => item.value.trim()) : [];
+      const value = input ? input.value.trim().toLowerCase() : '';
+      const isTableAnswer = inputs.length > 0;
+      const isCorrect = isTableAnswer ? JSON.stringify(values) === JSON.stringify(correctTable) : value === correctAnswer;
+      if (isTableAnswer) {
+        if (!values.some(Boolean)) {
+          result.textContent = 'Заполните таблицу ответа.';
+          result.className = 'answer-result answer-warning';
+          return;
+        }
+        result.textContent = isCorrect ? 'Верно!' : 'Неверно.';
+        result.className = `answer-result ${isCorrect ? 'answer-correct' : 'answer-wrong'}`;
+        if (isCorrect) lockAnswer(true);
+        return;
+      }
+      if (!value) {
+        result.textContent = 'Введите ответ перед проверкой.';
+        result.className = 'answer-result answer-warning';
+        return;
+      }
+      if (isCorrect) {
+        result.textContent = '✅ Верно!';
+        lockAnswer(true);
+      } else {
+        result.textContent = '❌ Неверно.';
+        lockAnswer(false);
+      }
+    });
+  }
+</script>
+{% endblock %}
